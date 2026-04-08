@@ -363,6 +363,49 @@ const CSS = `
     font-style: italic;
   }
 
+  .supp-item { position: relative; }
+
+  .supp-tip {
+    display: none;
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: calc(100% + 6px);
+    background: var(--ocean-mid);
+    border: 1px solid var(--border-bright);
+    border-radius: 6px;
+    padding: 10px 12px;
+    font-family: 'Lora', serif;
+    font-size: 11px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    z-index: 100;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+    pointer-events: none;
+  }
+
+  .supp-tip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 24px;
+    border: 6px solid transparent;
+    border-top-color: var(--border-bright);
+  }
+
+  .supp-item:hover .supp-tip { display: block; }
+
+  @media (max-width: 600px) {
+    .supp-tip {
+      position: fixed;
+      left: 16px;
+      right: 16px;
+      bottom: auto;
+      top: auto;
+    }
+    .supp-tip::after { display: none; }
+  }
+
   .notes-area {
     background: var(--ocean-surface);
     border: 1px solid var(--border);
@@ -671,10 +714,10 @@ const CSS = `
 `;
 
 const SUPPLEMENTS = [
-  { id: "electrolytes", name: "Electrolytes", note: "K+ Mg2+ Na+ -- critical first 48h" },
-  { id: "b_complex", name: "B-Complex", note: "B1 depletes in 4 days" },
-  { id: "vitamin_d", name: "Vitamin D", note: "synergistic with sardine calcium" },
-  { id: "water", name: "2L+ Water", note: "glycogen release causes rapid dehydration" },
+  { id: "electrolytes", name: "Electrolytes", note: "K+ Mg2+ Na+ -- critical first 48h", tip: "Potassium: coconut water, lite salt (Nu-Salt). Magnesium: glycinate or citrate capsules, pumpkin seeds. Sodium: sea salt, bone broth, pickle juice." },
+  { id: "b_complex", name: "B-Complex", note: "B1 depletes in 4 days", tip: "B-Complex capsule (Thorne, Garden of Life). B1 (thiamine) also in nutritional yeast. Take with food (sardines) for absorption." },
+  { id: "vitamin_d", name: "Vitamin D", note: "synergistic with sardine calcium", tip: "D3 capsule or drops (2000-5000 IU). Sardine fat aids absorption. Morning sunlight also helps. Pair with K2 (MK-7) for calcium routing." },
+  { id: "water", name: "2L+ Water", note: "glycogen release causes rapid dehydration", tip: "Plain water, sparkling water, or herbal tea. Add a pinch of sea salt or electrolyte drops (LMNT, Nuun). Avoid sugary drinks -- they break the protocol." },
 ];
 
 const POSITIVE_SYMPTOMS = ["Clarity", "Energy", "Low Hunger", "Good Sleep", "Mood+"];
@@ -1012,6 +1055,7 @@ function SardineFastTracker() {
                         <div className="supp-name">{s.name}</div>
                         <div className="supp-note">{s.note}</div>
                       </div>
+                      {s.tip && <div className="supp-tip">{s.tip}</div>}
                     </div>
                   ))}
                 </div>
