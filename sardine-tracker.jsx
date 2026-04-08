@@ -1,0 +1,1143 @@
+import { useState, useEffect } from "react";
+
+const FONTS = `
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@300;400;500;600;700;900&family=Lora:ital,wght@0,400;0,500;1,400&family=JetBrains+Mono:wght@400;500&display=swap');
+`;
+
+const CSS = `
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --ocean-deep: #0a1628;
+    --ocean-mid: #102040;
+    --ocean-surface: #1a3354;
+    --teal: #1e6b7a;
+    --teal-bright: #2a9db5;
+    --teal-glow: #40c8e0;
+    --amber: #d4a853;
+    --amber-warm: #e8c87a;
+    --amber-dim: #8a6a2a;
+    --silver: #b8ccd8;
+    --silver-dim: #5a7a8a;
+    --text-primary: #d8eaf5;
+    --text-secondary: #8ab0c8;
+    --text-dim: #4a6a7a;
+    --danger: #e05555;
+    --success: #4ab87a;
+    --panel: rgba(26,51,84,0.6);
+    --border: rgba(42,157,181,0.2);
+    --border-bright: rgba(42,157,181,0.5);
+  }
+
+  body {
+    font-family: 'Lora', Georgia, serif;
+    background: var(--ocean-deep);
+    color: var(--text-primary);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  .app {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 24px 16px 80px;
+    position: relative;
+  }
+
+  /* Grain overlay */
+  .app::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 999;
+    opacity: 0.4;
+  }
+
+  /* Header */
+  .header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border-bright);
+    padding-bottom: 16px;
+    margin-bottom: 28px;
+  }
+
+  .logo {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .logo-tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    color: var(--teal-bright);
+    text-transform: uppercase;
+  }
+
+  .logo-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 36px;
+    font-weight: 900;
+    letter-spacing: -0.01em;
+    color: var(--text-primary);
+    line-height: 1;
+  }
+
+  .logo-title span { color: var(--amber); }
+
+  .header-status {
+    text-align: right;
+  }
+
+  .day-badge {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 52px;
+    font-weight: 900;
+    color: var(--amber);
+    line-height: 1;
+    letter-spacing: -0.02em;
+  }
+
+  .day-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--silver-dim);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+
+  /* Day Selector */
+  .day-selector {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 28px;
+  }
+
+  .day-btn {
+    flex: 1;
+    padding: 10px 4px;
+    border: 1px solid var(--border);
+    background: var(--panel);
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    border-radius: 4px;
+    transition: all 0.18s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .day-btn:hover {
+    border-color: var(--border-bright);
+    color: var(--text-primary);
+    background: rgba(42,157,181,0.1);
+  }
+
+  .day-btn.active {
+    border-color: var(--amber);
+    background: rgba(212,168,83,0.12);
+    color: var(--amber-warm);
+  }
+
+  .day-btn.completed::after {
+    content: '✓';
+    position: absolute;
+    top: 3px;
+    right: 6px;
+    font-size: 10px;
+    color: var(--success);
+  }
+
+  .day-btn .day-num {
+    font-size: 22px;
+    font-weight: 900;
+    line-height: 1;
+  }
+
+  .day-btn .day-sub {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    color: var(--text-dim);
+  }
+
+  /* Grid layout */
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .grid-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  /* Panel */
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    backdrop-filter: blur(8px);
+    transition: border-color 0.2s;
+  }
+
+  .panel:hover { border-color: rgba(42,157,181,0.35); }
+
+  .panel-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 12px;
+  }
+
+  .panel-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 14px;
+    letter-spacing: 0.03em;
+  }
+
+  /* Sardine Can Tracker */
+  .can-row {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+
+  .can-icon {
+    width: 68px;
+    height: 44px;
+    border-radius: 8px;
+    border: 2px solid var(--border);
+    background: var(--ocean-surface);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 26px;
+    filter: grayscale(0.5) brightness(0.7);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .can-icon.filled {
+    border-color: var(--amber);
+    background: rgba(212,168,83,0.15);
+    filter: none;
+    box-shadow: 0 0 14px rgba(212,168,83,0.25);
+  }
+
+  .can-icon:hover {
+    border-color: var(--teal-bright);
+    filter: brightness(0.9);
+  }
+
+  .can-count-text {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 28px;
+    font-weight: 900;
+    color: var(--amber);
+  }
+
+  .can-count-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--text-dim);
+    letter-spacing: 0.1em;
+  }
+
+  .can-goal {
+    font-size: 11px;
+    color: var(--text-dim);
+    font-style: italic;
+  }
+
+  /* Metrics */
+  .metric-row {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .metric-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .metric-label {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    letter-spacing: 0.05em;
+    width: 70px;
+    flex-shrink: 0;
+    text-transform: uppercase;
+  }
+
+  .metric-stars {
+    display: flex;
+    gap: 4px;
+  }
+
+  .star {
+    width: 18px;
+    height: 18px;
+    border-radius: 3px;
+    background: var(--ocean-surface);
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+  }
+
+  .star.active {
+    background: var(--teal);
+    border-color: var(--teal-bright);
+    box-shadow: 0 0 6px rgba(64,200,224,0.3);
+  }
+
+  .star:hover { border-color: var(--teal-glow); }
+
+  /* Weight Input */
+  .weight-input {
+    background: var(--ocean-surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--teal-glow);
+    width: 100%;
+    outline: none;
+    transition: border-color 0.2s;
+    text-align: center;
+    letter-spacing: -0.01em;
+  }
+
+  .weight-input:focus { border-color: var(--teal-bright); }
+  .weight-input::placeholder { color: var(--text-dim); font-size: 20px; }
+
+  .weight-unit {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    text-align: center;
+    margin-top: 4px;
+    letter-spacing: 0.15em;
+  }
+
+  /* Supplements */
+  .supp-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .supp-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    padding: 8px 10px;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    transition: all 0.15s;
+  }
+
+  .supp-item:hover { background: rgba(42,157,181,0.08); border-color: var(--border); }
+
+  .supp-item.checked { background: rgba(74,184,122,0.08); border-color: rgba(74,184,122,0.2); }
+
+  .supp-check {
+    width: 18px;
+    height: 18px;
+    border-radius: 4px;
+    border: 1.5px solid var(--border-bright);
+    background: var(--ocean-surface);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    flex-shrink: 0;
+    transition: all 0.15s;
+  }
+
+  .supp-item.checked .supp-check {
+    background: var(--success);
+    border-color: var(--success);
+  }
+
+  .supp-name {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    letter-spacing: 0.03em;
+  }
+
+  .supp-note {
+    font-family: 'Lora', serif;
+    font-size: 10px;
+    color: var(--text-dim);
+    font-style: italic;
+  }
+
+  /* Notes textarea */
+  .notes-area {
+    background: var(--ocean-surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px 14px;
+    font-family: 'Lora', serif;
+    font-size: 13px;
+    color: var(--text-secondary);
+    width: 100%;
+    min-height: 90px;
+    resize: vertical;
+    outline: none;
+    line-height: 1.6;
+    transition: border-color 0.2s;
+  }
+
+  .notes-area:focus { border-color: var(--teal-bright); color: var(--text-primary); }
+  .notes-area::placeholder { color: var(--text-dim); font-style: italic; }
+
+  /* Science panel */
+  .science-panel {
+    border-color: rgba(212,168,83,0.25);
+    background: rgba(212,168,83,0.05);
+  }
+
+  .science-item {
+    display: flex;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(212,168,83,0.1);
+  }
+
+  .science-item:last-child { border-bottom: none; padding-bottom: 0; }
+
+  .science-num {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 20px;
+    font-weight: 900;
+    color: var(--amber-dim);
+    flex-shrink: 0;
+    line-height: 1;
+    width: 20px;
+    text-align: center;
+    margin-top: 2px;
+  }
+
+  .science-text {
+    font-family: 'Lora', serif;
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    font-style: italic;
+  }
+
+  .science-highlight { color: var(--amber-warm); font-style: normal; font-weight: 500; }
+
+  /* Progress bar */
+  .progress-wrap {
+    margin-bottom: 28px;
+  }
+
+  .progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+
+  .progress-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+
+  .progress-pct {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--teal-bright);
+  }
+
+  .progress-bar {
+    height: 4px;
+    background: var(--ocean-surface);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--teal), var(--teal-glow));
+    border-radius: 2px;
+    transition: width 0.4s ease;
+    box-shadow: 0 0 8px rgba(64,200,224,0.4);
+  }
+
+  /* Warning strip */
+  .warning-strip {
+    background: rgba(224,85,85,0.08);
+    border: 1px solid rgba(224,85,85,0.2);
+    border-radius: 6px;
+    padding: 10px 14px;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    margin-bottom: 20px;
+  }
+
+  .warning-icon { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+
+  .warning-text {
+    font-family: 'Lora', serif;
+    font-size: 11px;
+    color: rgba(224,85,85,0.8);
+    font-style: italic;
+    line-height: 1.5;
+  }
+
+  /* Symptoms toggle row */
+  .symptom-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 4px;
+  }
+
+  .symptom-tag {
+    padding: 4px 10px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: var(--ocean-surface);
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: 0.03em;
+  }
+
+  .symptom-tag:hover { border-color: var(--teal-bright); }
+
+  .symptom-tag.active {
+    border-color: var(--teal-bright);
+    background: rgba(42,157,181,0.2);
+    color: var(--teal-glow);
+  }
+
+  .symptom-tag.negative.active {
+    border-color: var(--danger);
+    background: rgba(224,85,85,0.15);
+    color: #f08080;
+  }
+
+  /* Summary view */
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .summary-day-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 10px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .summary-day-card:hover { border-color: var(--teal-bright); }
+  .summary-day-card.active { border-color: var(--amber); background: rgba(212,168,83,0.1); }
+
+  .summary-day-num {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 28px;
+    font-weight: 900;
+    color: var(--text-primary);
+    line-height: 1;
+  }
+
+  .summary-cans {
+    display: flex;
+    justify-content: center;
+    gap: 2px;
+    margin: 6px 0;
+  }
+
+  .summary-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--border);
+  }
+
+  .summary-dot.filled { background: var(--amber); }
+
+  .summary-weight {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--teal-bright);
+    margin-top: 4px;
+  }
+
+  /* Tabs */
+  .tabs {
+    display: flex;
+    gap: 0;
+    margin-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .tab {
+    padding: 8px 16px;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: all 0.15s;
+  }
+
+  .tab:hover { color: var(--text-secondary); }
+  .tab.active { color: var(--amber); border-bottom-color: var(--amber); }
+
+  /* Ketosis indicator */
+  .keto-indicator {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border-radius: 6px;
+    background: var(--ocean-surface);
+    margin-bottom: 12px;
+  }
+
+  .keto-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--text-dim);
+    flex-shrink: 0;
+  }
+
+  .keto-dot.active {
+    background: var(--success);
+    box-shadow: 0 0 8px rgba(74,184,122,0.5);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  .keto-label {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    letter-spacing: 0.05em;
+  }
+
+  .keto-status {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    margin-left: auto;
+  }
+
+  .section-full { margin-bottom: 16px; }
+`;
+
+const SUPPLEMENTS = [
+  { id: "electrolytes", name: "Electrolytes", note: "K+ Mg²⁺ Na⁺ — critical first 48h" },
+  { id: "b_complex", name: "B-Complex", note: "B1 depletes in 4 days" },
+  { id: "vitamin_d", name: "Vitamin D", note: "synergistic with sardine calcium" },
+  { id: "water", name: "2L+ Water", note: "glycogen release causes rapid dehydration" },
+];
+
+const POSITIVE_SYMPTOMS = ["Clarity", "Energy", "Low Hunger", "Good Sleep", "Mood+"];
+const NEGATIVE_SYMPTOMS = ["Headache", "Fatigue", "Cravings", "Nausea", "Brain Fog"];
+
+const SCIENCE_FACTS = [
+  { num: "1", text: "Barcelona trial (~150 participants): two cans of sardines per week cut diabetic risk from ", highlight: "37% → 8%", tail: "." },
+  { num: "2", text: "Fasting-mimicking effect: lowering insulin forces metabolic shift from ", highlight: "glucose → ketones", tail: " — same benefits as therapeutic fasting." },
+  { num: "3", text: "Mercury concern is minimal: sardines contain only ", highlight: "0.013 ppb Hg", tail: ", and high selenium content binds and neutralizes it." },
+  { num: "4", text: "\"Dopamine hunger\": by day 2, physical hunger resolves but ", highlight: "psychological cravings", tail: " for variety/texture/spice emerge." },
+];
+
+const PHASE_LABELS = {
+  1: "GLYCOGEN BURN",
+  2: "TRANSITION",
+  3: "KETOSIS",
+  4: "DEEP FAST",
+  5: "COMPLETION",
+};
+
+const PHASE_DESC = {
+  1: "Body burning stored glycogen. Expect water weight drop + potential fatigue.",
+  2: "Transition into fat-burning. Hardest day — stay hydrated, electrolytes key.",
+  3: "Ketosis establishing. Clarity often emerges. Cravings shift from physical to psychological.",
+  4: "Deep fasting-mimicking state. Autophagy signals active. Inflammation markers drop.",
+  5: "Protocol complete. Break fast gently — light fermented or vegetable foods first.",
+};
+
+function RatingStars({ value, onChange, max = 5, color = "teal" }) {
+  return (
+    <div className="metric-stars">
+      {Array.from({ length: max }).map((_, i) => (
+        <div
+          key={i}
+          className={`star${i < value ? " active" : ""}`}
+          onClick={() => onChange(i + 1 === value ? 0 : i + 1)}
+          style={i < value && color === "amber" ? { background: "var(--amber)", borderColor: "var(--amber-warm)" } : {}}
+        >
+          {i < value ? "▪" : ""}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+const emptyDayData = () => ({
+  cans: 0,
+  weight: "",
+  supplements: {},
+  symptoms_pos: [],
+  symptoms_neg: [],
+  notes: "",
+  energy: 0,
+  clarity: 0,
+  sleep: 0,
+  mood: 0,
+});
+
+export default function SardineFastTracker() {
+  const [activeDay, setActiveDay] = useState(1);
+  const [view, setView] = useState("log"); // log | science | summary
+  const [days, setDays] = useState(() => {
+    const init = {};
+    for (let i = 1; i <= 5; i++) init[i] = emptyDayData();
+    return init;
+  });
+
+  // Load from storage
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await window.storage.get("sardine_days");
+        if (res?.value) {
+          const loaded = JSON.parse(res.value);
+          setDays(prev => ({ ...prev, ...loaded }));
+        }
+        const dayRes = await window.storage.get("sardine_active_day");
+        if (dayRes?.value) setActiveDay(parseInt(dayRes.value));
+      } catch {}
+    })();
+  }, []);
+
+  // Save to storage
+  const save = async (newDays, newDay) => {
+    try {
+      await window.storage.set("sardine_days", JSON.stringify(newDays));
+      await window.storage.set("sardine_active_day", String(newDay ?? activeDay));
+    } catch {}
+  };
+
+  const updateDay = (field, value) => {
+    const updated = { ...days, [activeDay]: { ...days[activeDay], [field]: value } };
+    setDays(updated);
+    save(updated, activeDay);
+  };
+
+  const toggleSymptom = (list, sym) => {
+    const cur = days[activeDay][list];
+    const next = cur.includes(sym) ? cur.filter(s => s !== sym) : [...cur, sym];
+    updateDay(list, next);
+  };
+
+  const toggleSupplement = (id) => {
+    const cur = days[activeDay].supplements;
+    updateDay("supplements", { ...cur, [id]: !cur[id] });
+  };
+
+  const d = days[activeDay];
+  const totalCans = Object.values(days).reduce((s, d) => s + (d.cans || 0), 0);
+  const completedDays = Object.values(days).filter(d => d.cans >= 3).length;
+  const progress = (completedDays / 5) * 100;
+  const ketoActive = activeDay >= 3 || (activeDay === 2 && d.cans >= 2);
+
+  const handleDayChange = (day) => {
+    setActiveDay(day);
+    save(days, day);
+  };
+
+  return (
+    <>
+      <style>{FONTS}{CSS}</style>
+      <div className="app">
+        {/* Header */}
+        <div className="header">
+          <div className="logo">
+            <span className="logo-tag">5-Day Protocol</span>
+            <h1 className="logo-title">SARDINE<span>FAST</span></h1>
+          </div>
+          <div className="header-status">
+            <div className="day-badge">D{activeDay}</div>
+            <div className="day-label">{PHASE_LABELS[activeDay]}</div>
+          </div>
+        </div>
+
+        {/* Overall progress */}
+        <div className="progress-wrap">
+          <div className="progress-header">
+            <span className="progress-label">Protocol Progress — {totalCans} cans total / {completedDays}/5 days complete</span>
+            <span className="progress-pct">{Math.round(progress)}%</span>
+          </div>
+          <div className="progress-bar">
+            <div className="progress-fill" style={{ width: `${progress}%` }} />
+          </div>
+        </div>
+
+        {/* Warning */}
+        <div className="warning-strip">
+          <span className="warning-icon">⚕</span>
+          <span className="warning-text">
+            Single-source diet. Claims derive from one YouTube video (Dr. Berg). Consult a healthcare professional before starting. Not a substitute for medical advice.
+          </span>
+        </div>
+
+        {/* Day Selector */}
+        <div className="day-selector">
+          {[1,2,3,4,5].map(day => (
+            <button
+              key={day}
+              className={`day-btn${activeDay === day ? " active" : ""}${days[day].cans >= 3 ? " completed" : ""}`}
+              onClick={() => handleDayChange(day)}
+            >
+              <span className="day-num">{day}</span>
+              <span className="day-sub">{PHASE_LABELS[day].split(" ")[0]}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* Phase description */}
+        <div style={{ fontFamily: "'Lora', serif", fontSize: 12, color: "var(--text-dim)", fontStyle: "italic", marginBottom: 20, paddingLeft: 4 }}>
+          {PHASE_DESC[activeDay]}
+        </div>
+
+        {/* Tabs */}
+        <div className="tabs">
+          {["log", "science", "summary"].map(t => (
+            <div key={t} className={`tab${view === t ? " active" : ""}`} onClick={() => setView(t)}>
+              {t === "log" ? "Daily Log" : t === "science" ? "Science" : "Overview"}
+            </div>
+          ))}
+        </div>
+
+        {view === "log" && (
+          <>
+            <div className="grid-2">
+              {/* Can Tracker */}
+              <div className="panel">
+                <div className="panel-label">Daily Intake</div>
+                <div className="panel-title">Sardine Cans</div>
+                <div className="can-row">
+                  {[1,2,3].map(n => (
+                    <div
+                      key={n}
+                      className={`can-icon${d.cans >= n ? " filled" : ""}`}
+                      onClick={() => updateDay("cans", d.cans >= n ? n - 1 : n)}
+                      title={`${n} can${n > 1 ? "s" : ""}`}
+                    >
+                      🐟
+                    </div>
+                  ))}
+                  <div style={{ marginLeft: 8 }}>
+                    <div className="can-count-text">{d.cans}<span style={{ fontSize: 14, color: "var(--text-dim)" }}>/3</span></div>
+                    <div className="can-count-label">CONSUMED</div>
+                  </div>
+                </div>
+                <div className="can-goal">
+                  {d.cans === 0 && "Tap to log each can as you eat it."}
+                  {d.cans === 1 && "Good start — 2 more to go."}
+                  {d.cans === 2 && "One more — hold strong."}
+                  {d.cans >= 3 && "✓ Daily target reached."}
+                </div>
+              </div>
+
+              {/* Weight */}
+              <div className="panel">
+                <div className="panel-label">Body Weight</div>
+                <div className="panel-title">Morning Reading</div>
+                <input
+                  className="weight-input"
+                  type="number"
+                  step="0.1"
+                  placeholder="—.—"
+                  value={d.weight}
+                  onChange={e => updateDay("weight", e.target.value)}
+                />
+                <div className="weight-unit">KG · FASTED · SAME TIME DAILY</div>
+                {activeDay > 1 && days[activeDay - 1].weight && d.weight && (
+                  <div style={{ textAlign: "center", marginTop: 8, fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: parseFloat(d.weight) < parseFloat(days[activeDay - 1].weight) ? "var(--success)" : "var(--danger)" }}>
+                    {parseFloat(d.weight) < parseFloat(days[activeDay - 1].weight) ? "↓" : "↑"} {Math.abs(parseFloat(d.weight) - parseFloat(days[activeDay - 1].weight)).toFixed(1)} kg vs yesterday
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Ketosis + Metrics */}
+            <div className="grid-2">
+              <div className="panel">
+                <div className="panel-label">Metabolic State</div>
+                <div className="keto-indicator">
+                  <div className={`keto-dot${ketoActive ? " active" : ""}`} />
+                  <span className="keto-label">KETOSIS</span>
+                  <span className="keto-status">{ketoActive ? "LIKELY ACTIVE" : "ESTABLISHING"}</span>
+                </div>
+                <div className="metric-row">
+                  {[
+                    { key: "energy", label: "Energy" },
+                    { key: "clarity", label: "Clarity" },
+                    { key: "sleep", label: "Sleep" },
+                    { key: "mood", label: "Mood" },
+                  ].map(({ key, label }) => (
+                    <div key={key} className="metric-item">
+                      <span className="metric-label">{label}</span>
+                      <RatingStars value={d[key]} onChange={v => updateDay(key, v)} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Supplements */}
+              <div className="panel">
+                <div className="panel-label">Supplements</div>
+                <div className="panel-title" style={{ marginBottom: 10 }}>Checklist</div>
+                <div className="supp-list">
+                  {SUPPLEMENTS.map(s => (
+                    <div
+                      key={s.id}
+                      className={`supp-item${d.supplements[s.id] ? " checked" : ""}`}
+                      onClick={() => toggleSupplement(s.id)}
+                    >
+                      <div className="supp-check">{d.supplements[s.id] ? "✓" : ""}</div>
+                      <div>
+                        <div className="supp-name">{s.name}</div>
+                        <div className="supp-note">{s.note}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Symptoms */}
+            <div className="panel section-full">
+              <div className="panel-label">Symptom Tracker</div>
+              <div style={{ marginBottom: 10 }}>
+                <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 12, fontWeight: 700, letterSpacing: "0.1em", color: "var(--success)", marginBottom: 6 }}>POSITIVE</div>
+                <div className="symptom-row">
+                  {POSITIVE_SYMPTOMS.map(s => (
+                    <div
+                      key={s}
+                      className={`symptom-tag${d.symptoms_pos.includes(s) ? " active" : ""}`}
+                      onClick={() => toggleSymptom("symptoms_pos", s)}
+                    >{s}</div>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 12, fontWeight: 700, letterSpacing: "0.1em", color: "var(--danger)", marginBottom: 6 }}>CHALLENGING</div>
+                <div className="symptom-row">
+                  {NEGATIVE_SYMPTOMS.map(s => (
+                    <div
+                      key={s}
+                      className={`symptom-tag negative${d.symptoms_neg.includes(s) ? " active" : ""}`}
+                      onClick={() => toggleSymptom("symptoms_neg", s)}
+                    >{s}</div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Notes */}
+            <div className="panel section-full">
+              <div className="panel-label">Field Notes — Day {activeDay}</div>
+              <textarea
+                className="notes-area"
+                placeholder="Record observations — physical, mental, hunger patterns, deviations from protocol…"
+                value={d.notes}
+                onChange={e => updateDay("notes", e.target.value)}
+              />
+            </div>
+          </>
+        )}
+
+        {view === "science" && (
+          <div className="panel science-panel section-full">
+            <div className="panel-label">Research Context</div>
+            <div className="panel-title">Scientific Backing & Caveats</div>
+            {SCIENCE_FACTS.map(f => (
+              <div key={f.num} className="science-item">
+                <div className="science-num">{f.num}</div>
+                <div className="science-text">
+                  {f.text}<span className="science-highlight">{f.highlight}</span>{f.tail}
+                </div>
+              </div>
+            ))}
+            <div style={{ marginTop: 16, padding: "12px 14px", background: "rgba(10,22,40,0.5)", borderRadius: 6, border: "1px solid rgba(212,168,83,0.15)" }}>
+              <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 13, fontWeight: 700, color: "var(--amber-dim)", letterSpacing: "0.1em", marginBottom: 6 }}>FASTING-MIMICKING MECHANISM</div>
+              <div className="science-text" style={{ fontStyle: "normal" }}>
+                Three cans of sardines ≈ <span className="science-highlight">~450–600 kcal/day</span> — below the threshold that triggers full glycogen restoration. The body continues drawing on fat stores. Omega-3 EPA/DHA additionally modulate inflammatory signaling independently of caloric restriction.
+              </div>
+            </div>
+            <div style={{ marginTop: 12, fontFamily: "'Lora', serif", fontSize: 11, color: "var(--text-dim)", fontStyle: "italic", lineHeight: 1.6 }}>
+              Source: Dr. Eric Berg DC (YouTube). Single source — independent verification advised before undertaking this protocol.
+            </div>
+          </div>
+        )}
+
+        {view === "summary" && (
+          <>
+            <div className="summary-grid">
+              {[1,2,3,4,5].map(day => (
+                <div
+                  key={day}
+                  className={`summary-day-card${activeDay === day ? " active" : ""}`}
+                  onClick={() => { handleDayChange(day); setView("log"); }}
+                >
+                  <div className="summary-day-num">{day}</div>
+                  <div className="summary-cans">
+                    {[1,2,3].map(n => (
+                      <div key={n} className={`summary-dot${days[day].cans >= n ? " filled" : ""}`} />
+                    ))}
+                  </div>
+                  <div className="summary-weight">
+                    {days[day].weight ? `${days[day].weight} kg` : "—"}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Weight delta table */}
+            <div className="panel section-full">
+              <div className="panel-label">Weight Progression</div>
+              {[1,2,3,4,5].map(day => {
+                const w = parseFloat(days[day].weight);
+                const prev = parseFloat(days[day - 1]?.weight);
+                const base = parseFloat(days[1].weight);
+                const delta = !isNaN(w) && !isNaN(prev) ? (w - prev).toFixed(1) : null;
+                const total = !isNaN(w) && !isNaN(base) && day > 1 ? (w - base).toFixed(1) : null;
+                return (
+                  <div key={day} style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 0", borderBottom: day < 5 ? "1px solid var(--border)" : "none" }}>
+                    <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 20, fontWeight: 900, color: "var(--text-dim)", width: 24 }}>{day}</div>
+                    <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 14, color: "var(--teal-glow)", width: 70 }}>
+                      {days[day].weight ? `${days[day].weight} kg` : "—"}
+                    </div>
+                    {delta && (
+                      <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: parseFloat(delta) < 0 ? "var(--success)" : "var(--danger)" }}>
+                        {parseFloat(delta) < 0 ? "↓" : "↑"}{Math.abs(parseFloat(delta))} kg/day
+                      </div>
+                    )}
+                    {total && (
+                      <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: "var(--text-dim)", marginLeft: "auto" }}>
+                        {parseFloat(total) < 0 ? "↓" : "↑"}{Math.abs(parseFloat(total))} total
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Metrics heatmap */}
+            <div className="panel section-full">
+              <div className="panel-label">Wellbeing Across Days</div>
+              <div style={{ display: "grid", gridTemplateColumns: "70px repeat(5, 1fr)", gap: 6 }}>
+                <div />
+                {[1,2,3,4,5].map(d => (
+                  <div key={d} style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 12, fontWeight: 700, color: "var(--text-dim)", textAlign: "center" }}>D{d}</div>
+                ))}
+                {["energy","clarity","sleep","mood"].map(metric => (
+                  <>
+                    <div key={metric + "_l"} style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: "0.05em", color: "var(--text-secondary)", display: "flex", alignItems: "center" }}>
+                      {metric.toUpperCase()}
+                    </div>
+                    {[1,2,3,4,5].map(day => {
+                      const val = days[day][metric];
+                      const opacity = val === 0 ? 0.1 : val / 5;
+                      return (
+                        <div
+                          key={metric + day}
+                          style={{
+                            background: `rgba(42,157,181,${opacity})`,
+                            border: `1px solid rgba(42,157,181,${opacity * 1.5})`,
+                            borderRadius: 4,
+                            height: 28,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontFamily: "'JetBrains Mono', monospace",
+                            fontSize: 11,
+                            color: val > 0 ? "var(--teal-glow)" : "var(--text-dim)",
+                          }}
+                        >
+                          {val > 0 ? val : "—"}
+                        </div>
+                      );
+                    })}
+                  </>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    </>
+  );
+}
